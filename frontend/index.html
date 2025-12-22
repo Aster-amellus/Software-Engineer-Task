@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>arXiv 文献综述 MVP</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 1rem; }
+      textarea, input { width: 100%; margin: 4px 0; }
+      textarea { height: 80px; }
+      section { border: 1px solid #ddd; padding: 12px; margin-bottom: 12px; }
+      .log { border: 1px solid #ccc; height: 200px; overflow: auto; padding: 6px; background: #f9f9f9; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 6px; border-bottom: 1px solid #eee; text-align: left; }
+      .pill { display: inline-block; padding: 2px 6px; border-radius: 6px; background: #eef; margin-right: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>arXiv 文献综述（MVP）</h1>
+
+    <section>
+      <h2>注册 / 登录</h2>
+      <input id="email" placeholder="邮箱" value="demo@example.com" />
+      <input id="password" placeholder="密码" value="password" type="password" />
+      <button onclick="register()">注册</button>
+      <button onclick="login()">登录</button>
+      <p>Token: <code id="token"></code></p>
+    </section>
+
+    <section>
+      <h2>创建项目</h2>
+      <label>研究主题</label>
+      <input id="topic" value="Large Language Models" />
+      <label>关键词（逗号分隔）</label>
+      <input id="keywords" value="LLM,AI" />
+      <label>最大检索数 / TopK</label>
+      <div style="display:flex; gap:8px;">
+        <input id="max_results" value="5" type="number" />
+        <input id="top_k" value="3" type="number" />
+      </div>
+      <button onclick="createProject()">创建</button>
+    </section>
+
+    <section>
+      <h2>我的项目</h2>
+      <div id="projects"></div>
+    </section>
+
+    <section>
+      <h2>WebSocket 日志</h2>
+      <div class="log" id="log"></div>
+    </section>
+
+    <script>
+      const apiBase = '/api/v1';
+      let token = '';
+      let currentProjectId = null;
+
+      function setToken(t) {
+        token = t;
+        document.getElementById('token').innerText = t.slice(0, 16) + '...';
+      }
+
+      async function register() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const resp = await fetch(`${apiBase}/auth/register`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (resp.ok) {
+          alert('注册成功');
+        } else {
+          alert('注册失败');
+        }
+      }
+
+      async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const resp = await fetch(`${apiBase}/auth/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ username: email, password, grant_type: 'password' })
+        });
+        const data = await resp.json();
+        if (data.access_token) {
+          setToken(data.access_token);
+          loadProjects();
+        }
+      }
+
+      async function createProject() {
+        const topic = document.getElementById('topic').value;
+        const keywords = document.getElementById('keywords').value.split(',').map(k => k.trim());
+        const max_results = parseInt(document.getElementById('max_results').value || '5', 10);
+        const top_k = parseInt(document.getElementById('top_k').value || '3', 10);
+        await fetch(`${apiBase}/projects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            topic,
+            keywords,
+            search: { max_results, fields: ['title', 'abstract'], sortBy: 'submittedDate', sortOrder: 'descending', start: 0 },
+            runtime: { max_papers: max_results, top_k },
+            providers: { llm: { name: 'mock' }, embedding: { name: 'mock' } }
+          })
+        });
+        loadProjects();
+      }
+
+      async function loadProjects() {
+        if (!token) return;
+        const resp = await fetch(`${apiBase}/projects`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const projects = await resp.json();
+        const container = document.getElementById('projects');
+        container.innerHTML = '';
+        projects.forEach(p => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <h3>#${p.id} ${p.topic}</h3>
+            <div>状态：<span class="pill">${p.status}</span> 阶段：${p.stage}，进度：${p.progress}%</div>
+            <div>关键词：${(p.keywords || []).join(', ')}</div>
+            <button onclick="runProject(${p.id})">Run</button>
+            <button onclick="loadExports(${p.id})">导出列表</button>
+            <button onclick="loadPapers(${p.id})">论文列表</button>
+            <div id="papers-${p.id}"></div>
+            <div id="exports-${p.id}"></div>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      async function runProject(id) {
+        currentProjectId = id;
+        await fetch(`${apiBase}/projects/${id}/run`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
+        connectWs();
+      }
+
+      async function loadPapers(id) {
+        const resp = await fetch(`${apiBase}/projects/${id}/papers`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const papers = await resp.json();
+        const target = document.getElementById(`papers-${id}`);
+        target.innerHTML = '<h4>论文</h4>' + papers.map(p => `<div>${p.title} (${p.arxiv_id}) - 下载状态: ${p.download_status}</div>`).join('');
+      }
+
+      async function loadExports(id) {
+        const resp = await fetch(`${apiBase}/projects/${id}/exports`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const exportsList = await resp.json();
+        const target = document.getElementById(`exports-${id}`);
+        target.innerHTML = '<h4>导出</h4>' + exportsList.map(ex => `<div>${ex.format} - <a href="${apiBase}/projects/exports/${ex.id}/download?token=${token}">下载</a></div>`).join('');
+      }
+
+      function appendLog(msg) {
+        const log = document.getElementById('log');
+        const line = document.createElement('div');
+        line.innerText = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function connectWs() {
+        if (!currentProjectId || !token) return;
+        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+        const ws = new WebSocket(`${proto}://${location.host}/api/v1/ws/projects/${currentProjectId}?token=${token}`);
+        appendLog(`连接项目 ${currentProjectId} 的日志...`);
+        ws.onmessage = (event) => {
+          appendLog(event.data);
+          loadProjects();
+        };
+      }
+    </script>
+  </body>
+</html>
