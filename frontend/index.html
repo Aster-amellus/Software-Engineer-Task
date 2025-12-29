@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arxiv Review MVP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --border: #e4e7ec;
+        --text: #1d2939;
+        --muted: #667085;
+        --primary: #4f46e5;
+        --primary-strong: #4338ca;
+        --success: #12b76a;
+        --warning: #f79009;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      header h1 {
+        font-size: 28px;
+        margin: 0;
+      }
+
+      .pill {
+        background: #eef2ff;
+        color: var(--primary);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+        border: 1px solid var(--border);
+      }
+
+      .card h2,
+      .card h3 {
+        margin: 0 0 12px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 18px;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+
+      .row > div {
+        flex: 1;
+      }
+
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+      }
+
+      button:hover {
+        background: var(--primary-strong);
+      }
+
+      button.secondary {
+        background: #eef2ff;
+        color: var(--primary);
+      }
+
+      button.secondary:hover {
+        background: #e0e7ff;
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--border);
+      }
+
+      .token {
+        font-size: 12px;
+        word-break: break-all;
+        color: var(--muted);
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 8px;
+      }
+
+      .project-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: #fafbff;
+      }
+
+      .project-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .badge {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .badge.success {
+        background: #ecfdf3;
+        color: var(--success);
+      }
+
+      .badge.warning {
+        background: #fffaeb;
+        color: var(--warning);
+      }
+
+      .badge.default {
+        background: #f2f4f7;
+        color: var(--muted);
+      }
+
+      .log {
+        height: 240px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .log-entry {
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: #f9fafb;
+      }
+
+      .chat-window {
+        height: 240px;
+        overflow-y: auto;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .chat-bubble {
+        padding: 10px 12px;
+        border-radius: 12px;
+        max-width: 80%;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .chat-bubble.user {
+        align-self: flex-end;
+        background: #eef2ff;
+        color: var(--primary);
+      }
+
+      .chat-bubble.assistant {
+        align-self: flex-start;
+        background: #f4f4f5;
+        color: var(--text);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+      const apiBase = "/api/v1";
+
+      const initialForm = {
+        topic: "Large Language Models",
+        keywords: "LLM,AI",
+        fields: "title,abstract",
+        sortBy: "submittedDate",
+        sortOrder: "descending",
+        start: 0,
+        max_results: 10,
+        max_papers: 5,
+        top_k: 3,
+        download_concurrency: 5,
+        retry: 3,
+        llm_provider: "mock",
+        embedding_provider: "mock",
+      };
+
+      function App() {
+        const [token, setToken] = React.useState("");
+        const [email, setEmail] = React.useState("demo@example.com");
+        const [password, setPassword] = React.useState("password");
+        const [form, setForm] = React.useState(initialForm);
+        const [projects, setProjects] = React.useState([]);
+        const [activeProject, setActiveProject] = React.useState(null);
+        const [papers, setPapers] = React.useState([]);
+        const [exportsList, setExportsList] = React.useState([]);
+        const [logs, setLogs] = React.useState([]);
+        const [chatMessages, setChatMessages] = React.useState([]);
+        const [chatInput, setChatInput] = React.useState("");
+
+        const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
+        async function register() {
+          await fetch(`${apiBase}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+        }
+
+        async function login() {
+          const resp = await fetch(`${apiBase}/auth/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              username: email,
+              password,
+              grant_type: "password",
+            }),
+          });
+          const data = await resp.json();
+          setToken(data.access_token || "");
+        }
+
+        async function loadProjects() {
+          if (!token) return;
+          const resp = await fetch(`${apiBase}/projects`, { headers: authHeader });
+          if (!resp.ok) return;
+          const data = await resp.json();
+          setProjects(data);
+        }
+
+        async function createProject() {
+          const payload = {
+            topic: form.topic,
+            keywords: form.keywords.split(",").map((k) => k.trim()).filter(Boolean),
+            search: {
+              fields: form.fields.split(",").map((f) => f.trim()).filter(Boolean),
+              sortBy: form.sortBy,
+              sortOrder: form.sortOrder,
+              start: Number(form.start),
+              max_results: Number(form.max_results),
+            },
+            runtime: {
+              max_papers: Number(form.max_papers),
+              top_k: Number(form.top_k),
+              download_concurrency: Number(form.download_concurrency),
+              retry: Number(form.retry),
+            },
+            providers: {
+              llm: { name: form.llm_provider },
+              embedding: { name: form.embedding_provider },
+            },
+          };
+          await fetch(`${apiBase}/projects`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader },
+            body: JSON.stringify(payload),
+          });
+          loadProjects();
+        }
+
+        async function loadProjectDetail(projectId) {
+          const resp = await fetch(`${apiBase}/projects/${projectId}`, {
+            headers: authHeader,
+          });
+          if (!resp.ok) return;
+          const data = await resp.json();
+          setActiveProject(data);
+          loadPapers(projectId);
+          loadExports(projectId);
+        }
+
+        async function loadPapers(projectId) {
+          const resp = await fetch(`${apiBase}/projects/${projectId}/papers`, {
+            headers: authHeader,
+          });
+          if (!resp.ok) return;
+          setPapers(await resp.json());
+        }
+
+        async function loadExports(projectId) {
+          const resp = await fetch(`${apiBase}/projects/${projectId}/exports`, {
+            headers: authHeader,
+          });
+          if (!resp.ok) return;
+          setExportsList(await resp.json());
+        }
+
+        async function runProject(projectId) {
+          await fetch(`${apiBase}/projects/${projectId}/run`, {
+            method: "POST",
+            headers: authHeader,
+          });
+          connectWs(projectId);
+        }
+
+        function connectWs(projectId) {
+          if (!token) return;
+          const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+          const ws = new WebSocket(
+            `${wsProtocol}://${location.host}/api/v1/ws/projects/${projectId}?token=${token}`
+          );
+          ws.onmessage = (event) => {
+            try {
+              const parsed = JSON.parse(event.data);
+              setLogs((prev) => [
+                `${parsed.type || "log"}: ${JSON.stringify(parsed.payload || parsed)}`,
+                ...prev,
+              ].slice(0, 200));
+              loadProjectDetail(projectId);
+            } catch (error) {
+              setLogs((prev) => [event.data, ...prev].slice(0, 200));
+            }
+          };
+        }
+
+        async function sendChat() {
+          if (!chatInput.trim()) return;
+          const newMessages = [...chatMessages, { role: "user", content: chatInput.trim() }];
+          setChatMessages(newMessages);
+          setChatInput("");
+          const resp = await fetch(`${apiBase}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader },
+            body: JSON.stringify({ messages: newMessages }),
+          });
+          const data = await resp.json();
+          const reply = data.reply || "No reply.";
+          setChatMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+        }
+
+        React.useEffect(() => {
+          loadProjects();
+        }, [token]);
+
+        return (
+          <div className="page">
+            <header>
+              <div>
+                <h1>Arxiv Review MVP</h1>
+                <p className="subtitle">
+                  arXiv-only literature review pipeline with project tracking and Coze Agent chat.
+                </p>
+              </div>
+              <div className="pill">Mock Providers Enabled</div>
+            </header>
+
+            <div className="grid">
+              <div className="card">
+                <h2>Account Access</h2>
+                <p className="subtitle">Register or sign in to get your access token.</p>
+                <div className="row">
+                  <div>
+                    <label>Email</label>
+                    <input value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Password</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="row" style={{ marginTop: "12px" }}>
+                  <button className="secondary" onClick={register}>
+                    Register
+                  </button>
+                  <button onClick={login}>Login</button>
+                </div>
+                <div style={{ marginTop: "16px" }}>
+                  <label>Access Token</label>
+                  <div className="token">{token || "No token yet."}</div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="section-title">
+                  <h2>Create Project</h2>
+                  <button className="ghost" onClick={createProject}>
+                    Create
+                  </button>
+                </div>
+                <p className="subtitle">Define search and runtime parameters.</p>
+                <label>Topic</label>
+                <input
+                  value={form.topic}
+                  onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                />
+                <label>Keywords</label>
+                <input
+                  value={form.keywords}
+                  onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+                />
+                <div className="row">
+                  <div>
+                    <label>Fields</label>
+                    <input
+                      value={form.fields}
+                      onChange={(e) => setForm({ ...form, fields: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Sort By</label>
+                    <select
+                      value={form.sortBy}
+                      onChange={(e) => setForm({ ...form, sortBy: e.target.value })}
+                    >
+                      <option value="submittedDate">submittedDate</option>
+                      <option value="lastUpdatedDate">lastUpdatedDate</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="row">
+                  <div>
+                    <label>Sort Order</label>
+                    <select
+                      value={form.sortOrder}
+                      onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+                    >
+                      <option value="descending">descending</option>
+                      <option value="ascending">ascending</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Max Results</label>
+                    <input
+                      type="number"
+                      value={form.max_results}
+                      onChange={(e) => setForm({ ...form, max_results: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="row">
+                  <div>
+                    <label>Max Papers</label>
+                    <input
+                      type="number"
+                      value={form.max_papers}
+                      onChange={(e) => setForm({ ...form, max_papers: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Top K</label>
+                    <input
+                      type="number"
+                      value={form.top_k}
+                      onChange={(e) => setForm({ ...form, top_k: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="row">
+                  <div>
+                    <label>LLM Provider</label>
+                    <input
+                      value={form.llm_provider}
+                      onChange={(e) => setForm({ ...form, llm_provider: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Embedding Provider</label>
+                    <input
+                      value={form.embedding_provider}
+                      onChange={(e) => setForm({ ...form, embedding_provider: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid">
+              <div className="card">
+                <div className="section-title">
+                  <h2>Projects</h2>
+                  <button className="secondary" onClick={loadProjects}>
+                    Refresh
+                  </button>
+                </div>
+                <p className="subtitle">Select a project to view progress.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {projects.map((project) => (
+                    <div key={project.id} className="project-card">
+                      <strong>{project.topic}</strong>
+                      <div className="project-meta">
+                        <span>#{project.id}</span>
+                        <span>{project.stage || "Idle"}</span>
+                      </div>
+                      <div className="project-meta">
+                        <span className={`badge ${project.status === "completed" ? "success" : project.status === "running" ? "warning" : "default"}`}>
+                          {project.status || "queued"}
+                        </span>
+                        <span>{project.progress || 0}%</span>
+                      </div>
+                      <div className="row">
+                        <button className="secondary" onClick={() => loadProjectDetail(project.id)}>
+                          Open
+                        </button>
+                        <button onClick={() => runProject(project.id)}>Run</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card">
+                <h2>Project Details</h2>
+                <p className="subtitle">
+                  {activeProject ? `Project #${activeProject.id}` : "Select a project to see details."}
+                </p>
+                {activeProject ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <div>
+                      <strong>{activeProject.topic}</strong>
+                      <div className="muted">Stage: {activeProject.stage || "Idle"}</div>
+                    </div>
+                    <div className="row">
+                      <div>
+                        <label>Status</label>
+                        <div>{activeProject.status}</div>
+                      </div>
+                      <div>
+                        <label>Progress</label>
+                        <div>{activeProject.progress || 0}%</div>
+                      </div>
+                    </div>
+                    <div>
+                      <label>Keywords</label>
+                      <div className="muted">
+                        {(activeProject.keywords || []).join(", ") || "None"}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid">
+              <div className="card">
+                <h2>Pipeline Logs</h2>
+                <p className="subtitle">Streaming updates from the WebSocket channel.</p>
+                <div className="log">
+                  {logs.length === 0 ? (
+                    <div className="muted">No logs yet.</div>
+                  ) : (
+                    logs.map((entry, index) => (
+                      <div key={index} className="log-entry">
+                        {entry}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <h2>Coze Agent Chat</h2>
+                <p className="subtitle">Discuss project context with the Coze Agent service.</p>
+                <div className="chat-window">
+                  {chatMessages.length === 0 ? (
+                    <div className="muted">Start a conversation to see responses here.</div>
+                  ) : (
+                    chatMessages.map((msg, index) => (
+                      <div key={index} className={`chat-bubble ${msg.role}`}>
+                        {msg.content}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="row" style={{ marginTop: "12px" }}>
+                  <input
+                    placeholder="Ask Coze about the project..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                  />
+                  <button onClick={sendChat}>Send</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid">
+              <div className="card">
+                <h3>Papers</h3>
+                <p className="subtitle">Materialized arXiv search results.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {papers.length === 0 ? (
+                    <div className="muted">No papers yet.</div>
+                  ) : (
+                    papers.map((paper) => (
+                      <div key={paper.id} className="project-card">
+                        <strong>{paper.title}</strong>
+                        <div className="muted">{paper.abstract || "No abstract provided."}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <h3>Exports</h3>
+                <p className="subtitle">Generated markdown exports.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {exportsList.length === 0 ? (
+                    <div className="muted">No exports yet.</div>
+                  ) : (
+                    exportsList.map((item) => (
+                      <div key={item.id} className="project-card">
+                        <div className="row" style={{ alignItems: "center" }}>
+                          <strong>{item.format.toUpperCase()}</strong>
+                          <span className="muted">{item.status}</span>
+                        </div>
+                        {item.local_path ? (
+                          <a href={item.local_path} target="_blank" rel="noreferrer">
+                            Open file
+                          </a>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
